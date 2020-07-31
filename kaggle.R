@@ -14,10 +14,14 @@ glimpse(train)
 model <- lm(SalePrice ~ Neighborhood + GrLivArea, data = train)
 summary(model)
 
+# Specific neighborhoods
+neighborhoods <- c("NAmes", "Edwards", "BrkSide")
+
 # Explore the data
 train %>% 
-  ggplot(aes(GrLivArea, SalePrice)) +
-  geom_point(shape = 1, alpha = 0.3) +
+  filter(Neighborhood %in% neighborhoods) %>% 
+  ggplot(aes(GrLivArea, SalePrice, color = Neighborhood)) +
+  geom_point(shape = 1, alpha = 0.5) +
   geom_smooth(method = "lm") +
   scale_y_continuous(label = dollar) +
   labs(title = "Kaggle Home Prices Project",
