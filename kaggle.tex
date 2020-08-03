@@ -1,0 +1,191 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={DS6371 Kaggle Project},
+  pdfauthor={Christopher Dawson, Matt Farrow},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{DS6371 Kaggle Project}
+\author{Christopher Dawson, Matt Farrow}
+\date{8/1/2020}
+
+\begin{document}
+\maketitle
+
+\hypertarget{introduction}{%
+\subsection{Introduction}\label{introduction}}
+
+``Ask a home buyer to describe their dream house, and they probably
+won't begin with the height of the basement ceiling or the proximity to
+an east-west railroad. But this playground competition's dataset proves
+that much more influences price negotiations than the number of bedrooms
+or a white-picket fence.''
+(\href{https://www.kaggle.com/c/house-prices-advanced-regression-techniques/overview}{Kaggle})
+
+\hypertarget{data-description}{%
+\subsubsection{Data Description}\label{data-description}}
+
+The \href{http://jse.amstat.org/v19n3/decock.pdf}{Ames Housing dataset}
+was compiled by Dean De Cock and describes residential property sales in
+Ames, Iowa from 2006 to 2010. The data set contains 2919 observations,
+broken down into training (1460 observations) and testing (1459
+observations) datasets.
+
+\hypertarget{analysis-question-1}{%
+\subsection{Analysis Question 1}\label{analysis-question-1}}
+
+\hypertarget{restatement-of-problem}{%
+\subsubsection{Restatement of Problem}\label{restatement-of-problem}}
+
+Century 21 Ames, a real estate company in Ames, Iowa, has commissioned
+us to estimate how the sales price of a house in the North Ames (NAmes),
+Edwards, and Brookside (BrkSide) neighborhoods is related to the square
+footage (GrLivArea) of the house and if the sales price and its
+relationship to square footage depends on which neighborhood the house
+is located in.
+
+\hypertarget{build-and-fit-the-model}{%
+\subsubsection{Build and Fit the Model}\label{build-and-fit-the-model}}
+
+\hypertarget{checking-assumptions}{%
+\subsubsection{Checking Assumptions}\label{checking-assumptions}}
+
+\begin{itemize}
+\tightlist
+\item
+  Residual Plots
+\item
+  Influential point analysis (Cook's D and Leverage)
+\item
+  Make sure to address each assumption.
+\end{itemize}
+
+\hypertarget{comparing-competing-models}{%
+\subsubsection{Comparing Competing
+Models}\label{comparing-competing-models}}
+
+\begin{itemize}
+\tightlist
+\item
+  Adj R2\\
+\item
+  Internal CV Press
+\end{itemize}
+
+\hypertarget{parameters}{%
+\subsubsection{Parameters}\label{parameters}}
+
+\begin{itemize}
+\tightlist
+\item
+  Estimates
+\item
+  Interpretation
+\item
+  Confidence Intervals
+\end{itemize}
+
+\hypertarget{conclusion}{%
+\subsubsection{Conclusion}\label{conclusion}}
+
+\hypertarget{analysis-question-2}{%
+\subsection{Analysis Question 2}\label{analysis-question-2}}
+
+\hypertarget{restatement-of-problem-1}{%
+\subsubsection{Restatement of Problem}\label{restatement-of-problem-1}}
+
+\hypertarget{model-selection}{%
+\subsubsection{Model Selection}\label{model-selection}}
+
+Type of Selection - Stepwise - Forward - Backward - Custom
+
+\hypertarget{checking-assumptions-1}{%
+\subsubsection{Checking Assumptions}\label{checking-assumptions-1}}
+
+\begin{itemize}
+\tightlist
+\item
+  Residual Plots
+\item
+  Influential point analysis (Cook's D and Leverage)
+\item
+  Make sure to address each assumption
+\end{itemize}
+
+\hypertarget{comparing-competing-models-1}{%
+\subsubsection{Comparing Competing
+Models}\label{comparing-competing-models-1}}
+
+\begin{itemize}
+\tightlist
+\item
+  Adj R2\\
+\item
+  Internal CV Press\\
+\item
+  Kaggle Score
+\end{itemize}
+
+\hypertarget{conclusion-a-short-summary-of-the-analysis.}{%
+\subsubsection{Conclusion: A short summary of the
+analysis.}\label{conclusion-a-short-summary-of-the-analysis.}}
+
+\hypertarget{appendix}{%
+\subsection{Appendix}\label{appendix}}
+
+\end{document}
