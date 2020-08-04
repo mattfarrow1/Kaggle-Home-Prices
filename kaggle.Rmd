@@ -45,17 +45,40 @@ Century 21 Ames, a real estate company in Ames, Iowa, has commissioned us to est
 In assessing the data, the original training dataset has been filtered down to only the neighborhoods of interest. 
 
 ```{r echo=FALSE, message=FALSE}
-train %>% 
+# Original data scatter plot
+a <- train %>% 
   filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
   ggplot(aes(gr_liv_area, sale_price, color = neighborhood)) +
-  geom_point(shape = 1, alpha = 0.5) +
+  geom_point(alpha = 0.3) +
   geom_smooth(method = "lm") +
   scale_y_continuous(label = dollar) +
-  labs(title = "Kaggle Home Prices Project",
+  labs(title = "Kaggle Home Prices",
+       subtitle = "original data",
        x = "Living Area Square Footage",
-       y = "Sale Price") +
+       y = "Sale Price",
+       color = "Neighborhood") +
   theme_ipsum() +
+  theme(legend.position = "bottom") +
   NULL
+
+# Log-log data scatter plot
+b <- train %>% 
+  filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
+  ggplot(aes(log(gr_liv_area), log(sale_price), color = neighborhood)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  scale_y_continuous(label = dollar) +
+  labs(title = "Kaggle Home Prices",
+       subtitle = "with log-log transformation",
+       x = "log Living Area Square Footage",
+       y = "log Sale Price",
+       color = "Neighborhood") +
+  theme_ipsum() +
+  theme(legend.position = "bottom") +
+  NULL
+
+# Patchwork layout
+a + b
 ```
 
 It appears that a linear relationship exists between square footage and sale price, although a number of outliers are also present. We will need to investigate further to determine the best course of action. 
