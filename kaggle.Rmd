@@ -3,8 +3,8 @@ title: "DS6371 Kaggle Project"
 author: "Christopher Dawson, Matt Farrow"
 date: "8/1/2020"
 output:
-  html_document: default
-  # word_document: default
+  # bookdown::word_document2: default
+  bookdown::html_document2: default
 ---
 
 ```{r setup, include=FALSE}
@@ -12,10 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Load libraries
 library(tidyverse)
-library(hrbrthemes) # clean plotting theme
-library(scales)     # format scales
-library(patchwork)  # organizing plots
-library(broom)      # for working with model
+library(hrbrthemes)   # clean plotting theme
+library(scales)       # format scales
+library(patchwork)    # organizing plots
+library(broom)        # for working with model
+library(bookdown)     # for working with captions & references
+library(knitr)        # for table formatting
+library(xtable)       # for exporting model results
 
 # Load data
 test <- read_csv("test.csv")
@@ -26,25 +29,137 @@ test <- janitor::clean_names(test)
 train <- janitor::clean_names((train))
 ```
 
-## Introduction 
+## Introduction {-}
 
 "Ask a home buyer to describe their dream house, and they probably won't begin with the height of the basement ceiling or the proximity to an east-west railroad. But this playground competition's dataset proves that much more influences price negotiations than the number of bedrooms or a white-picket fence." ([Kaggle](https://www.kaggle.com/c/house-prices-advanced-regression-techniques/overview))
 
-### Data Description 
+### Data Description {-}
 
-The [Ames Housing dataset](http://jse.amstat.org/v19n3/decock.pdf) was compiled by Dean De Cock and describes residential property sales in Ames, Iowa from 2006 to 2010. "The data set contains 2930 observations and a large number of explanatory variables (23 nominal, 23 ordinal, 14 discrete, and 20 continuous) involved in assessing home values." [^1] [Full data description](http://jse.amstat.org/v19n3/decock/DataDocumentation.txt)
+The [Ames Housing dataset](http://jse.amstat.org/v19n3/decock.pdf) was compiled by Dean De Cock and describes residential property sales in Ames, Iowa from 2006 to 2010. "The data set contains 2930 observations and a large number of explanatory variables (23 nominal, 23 ordinal, 14 discrete, and 20 continuous) involved in assessing home values." [^1] 
 
-## Analysis Question 1
+[Full data description](http://jse.amstat.org/v19n3/decock/DataDocumentation.txt)
 
-### Restatement of Problem 
+## Analysis Question 1 {-}
+
+### Restatement of Problem{-}
 
 Century 21 Ames, a real estate company in Ames, Iowa, has commissioned us to estimate how the sales price of a house in the North Ames (NAmes), Edwards, and Brookside (BrkSide) neighborhoods is related to the square footage (GrLivArea) of the house and if the sales price and its relationship to square footage depends on which neighborhood the house is located in. 
 
-### Build and Fit the Model
+### Build and Fit the Model {-}
 
-In assessing the data, the original training dataset has been filtered down to only the neighborhoods of interest. 
+In assessing the data, the original training dataset has been filtered down to only the neighborhoods of interest. It appears that a linear relationship exists between square footage and sale price, although a number of outliers are also present. However, the log-log transformed data appeared to be a more appropriate fit for the data, so we proceeded using that transformation. (figure \@ref(fig:scatterplot))
 
-```{r echo=FALSE, message=FALSE}
+Based on the problem, our model for the relationship between square footage and sale price is:
+
+$median(log\_sale\_price) = b_o + b_1(log\_sq\_foot) + b_2(Edwards) + b_3(NAmes) + b_4(log\_sq\_foot*Edwards) + b_5(log\_sq\_foot*NAmes)$
+
+```{r include=FALSE}
+# Filter training set
+train_by_neighborhood <- train %>% 
+  filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
+  mutate(sq_foot = round(gr_liv_area, digits = -2),
+         log_sq_foot = log(sq_foot),
+         log_sale_price = log(sale_price)) %>% 
+  select(id, sq_foot, log_sq_foot,  neighborhood, sale_price, log_sale_price)
+
+# Identify outliers
+outliers <- boxplot(train_by_neighborhood$log_sale_price, plot = FALSE)$out
+train_by_neighborhood_outliers <- train_by_neighborhood %>% 
+  filter(!log_sale_price %in% outliers)
+
+# Multiple linear regresssion model
+log_model <- lm(log_sale_price ~ log_sq_foot + neighborhood + log_sq_foot*neighborhood, data = train_by_neighborhood)
+log_model_reduced <- lm(log_sale_price ~ log_sq_foot + neighborhood, data = train_by_neighborhood)
+```
+
+```{r echo=FALSE}
+summary(log_model)
+```
+
+The results of the linear model indicate that our final model for the North Ames, Edwards, and Brookside neighborhoods is as follows:
+
+$$median(sale\_price) = 6.0068 + 0.8066(log\_sq\_foot) + 2.0261(Edwards) + 2.4065(NAmes) - 0.2907(log\_sq\_foot*Edwards) - 0.3226(log\_sq\_foot*NAmes)$$
+This model has an R-squared value of 0.5177 and an Adjusted R-squared value of 0.5113, thus 51.77% of the variation in sales price can be explained by the variation in neighborhood and square footage. These values are simply estimates; the 95% confidence intervals can be found in the appendix. (figure \@ref(tab:q1confint))
+
+The full model can be simplified by neighborhood:
+
+- $median(log\_sale\_price | log\_sq\_foot, neighborhood = NAmes) = (b_o + b_3) + (b_1 + b_5)log\_sq\_foot$
+- $median(log\_sale\_price | log\_sq\_foot, neighborhood = Edwards) = (b_o + b_2) + (b_1 + b_4)log\_sq\_foot$
+- $median(log\_sale\_price | log\_sq\_foot, neighborhood = BrkSide) = b_o + b_1(log\_sq\_foot)$
+
+### Checking Assumptions {-}
+
+#### Residual Plots (Log-Transformed Data) {-}
+
+(figure \@ref(fig:q1logresplot))
+
+1. **Linearity**: The plots of residuals and studentized residuals, although primarily clustered around 11.5-12.0, do appear as a random cloud. 
+2. **Normality**: The histogram shows the residuals to be fairly normally distributed. 
+3. **Equal Standard Deviation**: The Q-Q plot shows the residuals to be linearly distributed. 
+4. **Outliers**: There are a handful of outliers that we decided to include in this model.
+
+The assumptions for using the log-log transformation model have been met and we proceeded with our analysis. 
+
+#### Influential Point Analysis {-}
+
+Based on the Cook's D plot (figure \@ref(fig:cooksd)), most of the data is relatively clumped together, however there is a single outlier that should be explored further.
+
+#### Address Assumptions {-}
+
+### Comparing Competing Models {-}
+- Adj R2  
+- Internal CV Press  
+
+### Parameters {-}
+
+- $b_0$: the intercept for the 
+
+### Conclusion {-}
+
+Using the full model ANOVA in table \@ref(tab:q1loganova1) and the reduced model ANOVA in table \@ref(tab:q1loganova2), we can build our own ANOVA table.
+
+## Analysis Question 2 {-}
+
+### Restatement of Problem {-}
+
+Build a predictive model for sales prices of all residential property sales in Ames, Iowa using multiple linear regression to analyze all of the variables in the dataset. In addition to building a custom model, we will also include three additional models: forward selection, backwards elimination, and stepwise selection. Finally, we will compare  the Adjusted R-squared, CV Press, and Kaggle scores for each of the models to determine which offers the most accurate prediction of future home sales in Ames, Iowa. 
+
+### Model Selection {-}
+
+#### Stepwise {-}
+
+#### Forward {-}
+
+#### Backward {-}
+
+#### Custom {-}	 
+
+### Checking Assumptions {-}
+
+#### Residual Plots {-}
+
+#### Influential point analysis (Cook’s D and Leverage) {-}
+
+1. Linearity
+2. Normality
+3. Equal Standard Deviation
+4. Outliers
+
+### Comparing Competing Models {-}
+
+#### Adj R2 {-}
+
+#### Internal CV Press {-}  
+
+#### Kaggle Score {-}
+
+### Conclusion {-}
+
+## Appendix {-}
+
+### Figures {-}
+
+```{r scatterplot, echo=FALSE, message=FALSE, fig.cap="Square footage and sales price, original and log-log transformed.", fig.align="center"}
 # Original data scatter plot
 a <- train %>% 
   filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
@@ -81,81 +196,26 @@ b <- train %>%
 a + b
 ```
 
-It appears that a linear relationship exists between square footage and sale price, although a number of outliers are also present. We will need to investigate further to determine the best course of action. 
-
-#### Initial Model
-
-Based on the problem, our first model for the relationship between square footage and sale price is:
-
-$$\mu(SalePrice) = b_o + b_1(GrLivArea)$$
-```{r include=FALSE}
-# Filter training set
-train_by_neighborhood <- train %>% 
-  filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
-  mutate(sq_foot = round(gr_liv_area, digits = -2),
-         log_sq_foot = log(sq_foot),
-         log_sale_price = log(sale_price)) %>% 
-  select(id, sq_foot, log_sq_foot,  neighborhood, sale_price, log_sale_price)
-
-# Identify outliers
-outliers <- boxplot(train_by_neighborhood$log_sale_price, plot = FALSE)$out
-train_by_neighborhood_outliers <- train_by_neighborhood %>% 
-  filter(!log_sale_price %in% outliers)
-
-# Multiple linear regresssion model
-model <- lm(sale_price ~ sq_foot + neighborhood + sq_foot*neighborhood, data = train_by_neighborhood)
-log_model <- lm(log_sale_price ~ log_sq_foot + neighborhood + log_sq_foot*neighborhood, data = train_by_neighborhood)
+```{r q1confint, echo=FALSE}
+log_model %>% 
+  confint() %>% 
+  xtable() %>% 
+  kable(caption = "95% confidence intervals for log-log transformed model in Question 1")
 ```
 
-### Checking Assumptions 
-
-#### Residual Plots (Original Data)
-
-```{r echo=FALSE, message=FALSE}
-# Plot residuals
-a <- model %>% 
-  ggplot(aes(.fitted, .resid)) +
-  geom_point(shape = 1, alpha = 0.5) +
-  geom_hline(yintercept = 0, color = "blue") +
-  labs(title = "Residuals") +
-  theme_ipsum()
-
-# Plot studentized residuals
-b <- model %>% 
-  augment() %>% 
-  ggplot(aes(.fitted, .std.resid)) +
-  geom_point(shape = 1, alpha = 0.5) +
-  geom_hline(yintercept = 0, color = "blue") +
-  labs(title = "Studentized Residuals") +
-  theme_ipsum()
-
-# Q-Q Plot of Residuals
-c <- model %>% 
-  ggplot(aes(sample = .resid)) +
-  stat_qq(alpha = 0.5) +
-  stat_qq_line(color = "darkblue") +
-  labs(title = "Q-Q Plot of Residuals") +
-  theme_ipsum()
-
-# Histogram of residuals
-d <- model %>% 
-  ggplot(aes(.resid, ..density..)) +
-  geom_histogram(fill = "lightblue", color = "darkblue") +
-  geom_density() +
-  labs(title = "Histogram of Residuals") +
-  theme_ipsum()
-
-(a + b) / (c + d)
+```{r q1loganova1, echo=FALSE}
+anova(log_model) %>% 
+  xtable() %>% 
+  kable(caption = "ANOVA of log-log transformed full model in Question 1")
 ```
 
-1. Linearity
-2. Normality
-3. Equal Standard Deviation
-4. Outliers
+```{r q1loganova2, echo=FALSE}
+anova(log_model_reduced) %>% 
+  xtable() %>% 
+  kable(caption = "ANOVA of log-log transformed reduced model in Question 1")
+```
 
-#### Residual Plots (Log-Transformedl Data)
-
-```{r echo=FALSE, message=FALSE}
+```{r q1logresplot, echo=FALSE, message=FALSE, fig.cap="Log-log transformed data residuals", fig.align="center"}
 # Plot residuals
 a <- log_model %>% 
   ggplot(aes(.fitted, .resid)) +
@@ -192,81 +252,156 @@ d <- log_model %>%
 (a + b) / (c + d)
 ```
 
-1. Linearity
-2. Normality
-3. Equal Standard Deviation
-4. Outliers
-
-#### Influential point analysis (Cook’s D and Leverage)
-
-```{r echo=FALSE}
-a <- model %>% 
+```{r cooksd, echo=FALSE, fig.cap="Cook's D analysis of original and log-log transformed data.", fig.align="center"}
+log_model %>% 
   augment() %>% 
   ggplot(aes(.fitted, .cooksd)) +
   geom_jitter(alpha = 0.3) +
-  labs(title = "Cooks D of Model") +
+  labs(title = "Cook's D of Log Model") +
   theme_ipsum()
-
-b <- log_model %>% 
-  augment() %>% 
-  ggplot(aes(.fitted, .cooksd)) +
-  geom_jitter(alpha = 0.3) +
-  labs(title = "Cooks D of Log Model") +
-  theme_ipsum()
-
-a + b
 ```
 
-#### Make sure to address each assumption.
-
-### Comparing Competing Models
-- Adj R2  
-- Internal CV Press  
-
-### Parameters
-- Estimates
-- Interpretation 
-- Confidence Intervals 
-
-### Conclusion
-	
-## Analysis Question 2
-
-### Restatement of Problem 
-
-Build a predictive model for sales prices of all residential property sales in Ames, Iowa using multiple linear regression to analyze all of the variables in the dataset. In addition to building a custom model, we will also include three additional models: forward selection, backwards elimination, and stepwise selection. Finally, we will compare  the adjusted $R^2$, CV Press, and Kaggle scores for each of the models to determine which offers the most accurate prediction of future home sales in Ames, Iowa. 
-
-### Model Selection
-
-#### Stepwise
-
-#### Forward
-
-#### Backward
-
-#### Custom 		 
-
-### Checking Assumptions 
-
-#### Residual Plots
-
-#### Influential point analysis (Cook’s D and Leverage)
-
-1. Linearity
-2. Normality
-3. Equal Standard Deviation
-4. Outliers
-
-### Comparing Competing Models
-
-#### Adj R2   
-
-#### Internal CV Press   
-
-#### Kaggle Score 
-
-### Conclusion 
-
-## Appendix
+### References {-}
 
 [^1]: Dean De Cock, “Ames, Iowa: Alternative to the Boston Housing Data as an End of Semester Regression Project”, Journal of Statistics Education, Volume 19, Number 3(2011).
+
+### Q1: Full Code {-}
+
+```{r full_code, eval=FALSE}
+# Setup--------------------------------------------------------------------
+
+# Load libraries
+library(tidyverse)
+library(hrbrthemes)   # clean plotting theme
+library(scales)       # format scales
+library(patchwork)    # organizing plots
+library(broom)        # for working with model
+library(bookdown)     # for working with captions & references
+library(knitr)        # for table formatting
+library(xtable)       # for exporting model results
+
+# Load data
+test <- read_csv("test.csv")
+train <- read_csv("train.csv")
+
+# Clean up column names
+test <- janitor::clean_names(test)
+train <- janitor::clean_names((train))
+
+# Q1: Initial Scatter Plots------------------------------------------------
+
+# Original data scatter plot
+a <- train %>% 
+  filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
+  ggplot(aes(gr_liv_area, sale_price, color = neighborhood)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  scale_y_continuous(label = dollar) +
+  labs(title = "Kaggle Home Prices",
+       subtitle = "original data",
+       x = "Living Area Square Footage",
+       y = "Sale Price",
+       color = "Neighborhood") +
+  theme_ipsum() +
+  theme(legend.position = "bottom") +
+  NULL
+
+# Log-log data scatter plot
+b <- train %>% 
+  filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
+  ggplot(aes(log(gr_liv_area), log(sale_price), color = neighborhood)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  scale_y_continuous(label = dollar) +
+  labs(title = "Kaggle Home Prices",
+       subtitle = "with log-log transformation",
+       x = "log Living Area Square Footage",
+       y = "log Sale Price",
+       color = "Neighborhood") +
+  theme_ipsum() +
+  theme(legend.position = "bottom") +
+  NULL
+
+# Patchwork layout
+a + b
+
+# Q1: Model Construction---------------------------------------------------
+
+# Filter training set
+train_by_neighborhood <- train %>% 
+  filter(neighborhood %in% c("NAmes", "Edwards", "BrkSide")) %>% 
+  mutate(sq_foot = round(gr_liv_area, digits = -2),
+         log_sq_foot = log(sq_foot),
+         log_sale_price = log(sale_price)) %>% 
+  select(id, sq_foot, log_sq_foot,  neighborhood, sale_price, log_sale_price)
+
+# Identify outliers
+outliers <- boxplot(train_by_neighborhood$log_sale_price, plot = FALSE)$out
+train_by_neighborhood_outliers <- train_by_neighborhood %>% 
+  filter(!log_sale_price %in% outliers)
+
+# Create models
+log_model <- lm(log_sale_price ~ 
+                  log_sq_foot + 
+                  neighborhood + 
+                  log_sq_foot*neighborhood, 
+                data = train_by_neighborhood)
+
+log_model_reduced <- lm(log_sale_price ~ 
+                          log_sq_foot + 
+                          neighborhood)
+
+# Full model statistics
+summary(log_model)  # summary statistics
+confint(log_model)  # confidence intervals
+anova(log_model)    # ANOVA
+
+# Reduced model statistics
+anova(log_model_reduced)  # ANOVA
+
+# Q1: Plot Residuals-------------------------------------------------------
+
+# Plot residuals
+a <- log_model %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(shape = 1, alpha = 0.5) +
+  geom_hline(yintercept = 0, color = "blue") +
+  labs(title = "Residuals") +
+  theme_ipsum()
+
+# Plot studentized residuals
+b <- log_model %>% 
+  augment() %>% 
+  ggplot(aes(.fitted, .std.resid)) +
+  geom_point(shape = 1, alpha = 0.5) +
+  geom_hline(yintercept = 0, color = "blue") +
+  labs(title = "Studentized Residuals") +
+  theme_ipsum()
+
+# Q-Q Plot of Residuals
+c <- log_model %>% 
+  ggplot(aes(sample = .resid)) +
+  stat_qq(alpha = 0.5) +
+  stat_qq_line(color = "darkblue") +
+  labs(title = "Q-Q Plot of Residuals") +
+  theme_ipsum()
+
+# Histogram of residuals
+d <- log_model %>% 
+  ggplot(aes(.resid, ..density..)) +
+  geom_histogram(fill = "lightblue", color = "darkblue") +
+  geom_density() +
+  labs(title = "Histogram of Residuals") +
+  theme_ipsum()
+
+# Assemble plots using patchwork
+(a + b) / (c + d)
+
+# Q1: Cook's D-------------------------------------------------------------
+log_model %>% 
+  augment() %>% 
+  ggplot(aes(.fitted, .cooksd)) +
+  geom_jitter(alpha = 0.3) +
+  labs(title = "Cook's D of Log Model") +
+  theme_ipsum()
+```
